@@ -1,0 +1,28 @@
+services:
+  redis:
+    build: .
+    container_name: redis
+    restart: unless-stopped
+    environment:
+      TZ: Africa/Kigali
+    volumes:
+      # Persistent data — never removed by `docker compose up/down`
+      - redis_data:/data
+      # Custom config — edit config/redis.conf and push
+      - ./config/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      - katisha-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  redis_data:
+    name: redis_data
+
+networks:
+  katisha-net:
+    external: true

@@ -1,0 +1,56 @@
+name: Deploy Redis
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:     ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key:      ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            set -e
+
+            DEPLOY_DIR="$HOME/katisha/redis"
+            REPO_URL="https://github.com/${{ github.repository }}.git"
+
+            # Clone on first deploy, pull on subsequent deploys
+            if [ -d "$DEPLOY_DIR/.git" ]; then
+              cd "$DEPLOY_DIR"
+              git pull origin main
+            else
+              mkdir -p "$HOME/katisha"
+              git clone "$REPO_URL" "$DEPLOY_DIR"
+              cd "$DEPLOY_DIR"
+            fi
+
+            # Write .env from GitHub secrets — secrets are the source of truth
+            cat > .env <<ENVEOF
+            REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
+            ENVEOF
+
+            # Patch the password placeholder in the config before starting.
+            # The real redis.conf stays clean in the repo — no secrets committed.
+            sed -i "s|requirepass REDIS_PASSWORD_PLACEHOLDER|requirepass ${{ secrets.REDIS_PASSWORD }}|" config/redis.conf
+
+            # Rebuild image if Dockerfile changed, recreate container if config changed.
+            # Named volume redis_data is never touched by this command.
+            docker compose up -d --build
+
+            # Wait for the container to be healthy
+            echo "Waiting for redis to be healthy..."
+            for i in $(seq 1 30); do
+              STATUS=$(docker inspect --format='{{.State.Health.Status}}' redis 2>/dev/null || echo "missing")
+              [ "$STATUS" = "healthy" ] && break
+              [ $i -eq 30 ] && echo "Timed out waiting for redis" && exit 1
+              sleep 2
+            done
+
+            echo "Redis is up."

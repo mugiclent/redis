@@ -10,7 +10,7 @@ services:
       - redis_data:/data
       # Custom config — edit config/redis.conf and push
       - ./config/redis.conf:/usr/local/etc/redis/redis.conf:ro
-    command: redis-server /usr/local/etc/redis/redis.conf
+    command: /usr/local/etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
     networks:
       - katisha-net
     healthcheck:

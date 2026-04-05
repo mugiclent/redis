@@ -36,10 +36,6 @@ jobs:
             REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
             ENVEOF
 
-            # Patch the password placeholder in the config before starting.
-            # The real redis.conf stays clean in the repo — no secrets committed.
-            sed -i "s|requirepass REDIS_PASSWORD_PLACEHOLDER|requirepass ${{ secrets.REDIS_PASSWORD }}|" config/redis.conf
-
             # Rebuild image if Dockerfile changed, recreate container if config changed.
             # Named volume redis_data is never touched by this command.
             docker compose up -d --build

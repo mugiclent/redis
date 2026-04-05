@@ -3,3 +3,6 @@
 
 # GitHub Actions secrets — never commit filled values
 actions.env
+
+# Local development script
+dev.sh

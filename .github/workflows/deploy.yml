@@ -36,6 +36,10 @@ jobs:
             REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
             ENVEOF
 
+            # Ensure the data volume is owned by the Chainguard redis user (UID 65532).
+            # Needed on first deploy or after switching from the official redis image (UID 999).
+            docker run --rm -v redis_data:/data busybox chown -R 65532:65532 /data
+
             # Rebuild image if Dockerfile changed, recreate container if config changed.
             # Named volume redis_data is never touched by this command.
             docker compose up -d --build

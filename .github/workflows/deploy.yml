@@ -21,10 +21,12 @@ jobs:
             DEPLOY_DIR="$HOME/katisha/redis"
             REPO_URL="https://github.com/${{ github.repository }}.git"
 
-            # Clone on first deploy, pull on subsequent deploys
+            # Clone on first deploy, hard-reset on subsequent deploys.
+            # reset --hard handles force-pushes (e.g. history rewrites) cleanly.
             if [ -d "$DEPLOY_DIR/.git" ]; then
               cd "$DEPLOY_DIR"
-              git pull origin main
+              git fetch origin main
+              git reset --hard origin/main
             else
               mkdir -p "$HOME/katisha"
               git clone "$REPO_URL" "$DEPLOY_DIR"
